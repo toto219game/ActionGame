@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d46e9b44d176ee4e989c7a0e79eacbd, type: 3}
-  m_Name: BlinkObject
+  m_Name: GrapFook
   m_EditorClassIdentifier: 
-  model: {fileID: 7994313125542814855, guid: e29db1385d5664c47a52807a97050a0b, type: 3}
-  ability: 0
+  model: {fileID: 8697353603929274543, guid: 1107fa6bacb095d409c9da443d825f84, type: 3}
+  ability: 2
   spawnPoint: {fileID: 0}

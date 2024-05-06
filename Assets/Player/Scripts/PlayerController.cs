@@ -212,7 +212,7 @@ public class PlayerController : MonoBehaviour
 
     //ステートマシン
     StateMachine<PlayerController> stateMachine;
-    public List<EventID> eventPriority;
+    [System.NonSerialized] public List<EventID> eventPriority = new List<EventID>();
     
     //コマンド(キーコン)
     [SerializeField] PlayerCommand grapCommand = new PlayerCommand(0, PlayerCommand.Timing.down,false);
@@ -308,12 +308,24 @@ public class PlayerController : MonoBehaviour
         }
     }
     
-    //ステート遷移を管理する関数
+    //能力関連のステートの遷移は１フレームに１回にする関数
     private void ManageStateTransition()
     {
         foreach(EventID id in eventPriority)
         {
+            switch (id)
+            {
+                case EventID.grapleOn:
+                    ToGrapState();
+                    return;
 
+                case EventID.grapleOff:
+                    ToGrapOffState();
+                    return;
+
+                default:
+                    return;
+            }
         }
         return;
     }

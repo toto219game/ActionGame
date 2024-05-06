@@ -49,9 +49,9 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
+        tiManager.Init(FlowPlayerAbility);
         uiManager.UIManagerInit();
         uiManager.CounterUpdate(tiManager.TotalNum);
-        tiManager.Init(FlowPlayerAbility);
     }
 
     private void Update()

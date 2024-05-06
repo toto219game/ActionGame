@@ -12,6 +12,8 @@ public class GroundState:BaseState
     {
         Debug.Log("GroundState Enter");
         owner.JumpVelocity = 0f;
+        owner.eventPriority.Clear();
+        owner.eventPriority.Add(EventID.grapleOn);
     }
 
     public override void Update()
@@ -50,6 +52,7 @@ public class JumpState : BaseState
     public override void Entry()
     {
         Debug.Log("JumpState Enter");
+        owner.eventPriority.Clear();
         owner.moveVector.y = 15f;
         stateMachine.Dispatch((int)EventID.floating);
     }
@@ -75,6 +78,8 @@ public class FloatingState : BaseState
     {
         Debug.Log("FloatingState Enter");
         jumpDeltaTime = 0f;
+        owner.eventPriority.Clear();
+        owner.eventPriority.Add(EventID.grapleOn);
     }
 
     public override void Update()
@@ -139,6 +144,8 @@ public class GrapFookState:BaseState
         owner.line.positionCount = 2;
         grapLength = (owner.grapTarget - owner.transform.position).magnitude;
         maxSpringDistance = grapLength * 0.8f;
+        owner.eventPriority.Clear();
+        owner.eventPriority.Add(EventID.grapleOff);
     }
 
     public override void Update()
@@ -189,6 +196,9 @@ public class GrapOffState : BaseState
     {
         Debug.Log("GrapFookState Exit");
         maxSpeed = owner.moveVector.magnitude;
+        owner.eventPriority.Clear();
+        owner.eventPriority.Add(EventID.ground);
+        owner.eventPriority.Add(EventID.grapleOn);
     }
 
     public override void Update()
