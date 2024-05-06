@@ -37,6 +37,7 @@ public class GameManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
     }
 
+    //”\—Í‚ðPlayer‚É—¬‚·
     private void FlowPlayerAbility()
     {
         foreach(AbilityID id in tiManager.enableAblityIDs)

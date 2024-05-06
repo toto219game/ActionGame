@@ -370,6 +370,7 @@ public class PlayerController : MonoBehaviour
         stateMachine.AddTransition<FloatingState, GrapFookState>((int)EventID.grapleOn);
         stateMachine.AddTransition<GrapFookState, GrapOffState>((int)EventID.grapleOff);
         stateMachine.AddTransition<GrapOffState, GroundState>((int)EventID.ground);
+        stateMachine.AddTransition<GrapOffState, GrapFookState>((int)EventID.grapleOn);
 
 
         if (isGround = IsGround())
@@ -390,8 +391,7 @@ public class PlayerController : MonoBehaviour
         stateMachine.OnUpdate();
 
 
-        ToGrapOffState();
-        ToGrapState();
+        ManageStateTransition();
     }
     //ƒMƒYƒ‚•\Ž¦‚³‚¹‚½‚¢‚Æ‚«Žg‚¤
     /*

@@ -197,7 +197,6 @@ public class GrapOffState : BaseState
         Debug.Log("GrapFookState Exit");
         maxSpeed = owner.moveVector.magnitude;
         owner.eventPriority.Clear();
-        owner.eventPriority.Add(EventID.ground);
         owner.eventPriority.Add(EventID.grapleOn);
     }
 
