@@ -72,7 +72,27 @@ public class FloatingState : BaseState
 {
 
     float jumpDeltaTime = 0f;
-    float maxSpeedY = 150f;
+    float moveY; //moveVectorのy成分を一時的に保存しておく変数
+
+    //指定の秒数立たないと重力を加えない処理
+    private void AddGravity(float interval = 0.1f)
+    {
+        if (jumpDeltaTime > interval)
+        {
+            moveY -= owner.gravity * Time.deltaTime;
+        }
+    }
+
+
+    private void TransitionToGroundState(float interval = 0.2f)
+    {
+        //intervalの秒数はGroundStateへの遷移をロックする
+        if (jumpDeltaTime < interval) return;
+        if (owner.isGround)
+        {
+            stateMachine.Dispatch((int)EventID.ground);
+        }
+    }
 
     public override void Entry()
     {
@@ -84,7 +104,7 @@ public class FloatingState : BaseState
 
     public override void Update()
     {
-        float moveY = owner.moveVector.y;
+        moveY = owner.moveVector.y;
         owner.moveVector.y = 0f;
         jumpDeltaTime += Time.deltaTime;
 
@@ -99,21 +119,13 @@ public class FloatingState : BaseState
             owner.moveVector *= owner.playerMaxSpeed / owner.moveVector.magnitude;
         }
         //上下の移動(ジャンプと落下)
+        AddGravity();
         owner.moveVector.y = moveY;
         owner.moveVector.y = Mathf.Clamp(owner.moveVector.y, -owner.playerMaxSpeedY, owner.playerMaxSpeedY);
         //移動処理
         owner.character.Move(owner.moveVector * Time.deltaTime);
 
-        if (jumpDeltaTime > 0.1f)
-        {
-            owner.moveVector.y -= owner.gravity * Time.deltaTime;
-        }
-        //0.2秒はGroundStateへの遷移をロックする
-        if (jumpDeltaTime < 0.2f) return;
-        if (owner.isGround)
-        {
-            stateMachine.Dispatch((int)EventID.ground);
-        }
+        TransitionToGroundState(0.2f);
     }
 }
 
@@ -192,6 +204,8 @@ public class GrapOffState : BaseState
     float maxSpeed;
     float inputForce = 5f;
     float gravity = 40f;
+    float moveY; //moveVectorのy成分を一時的に保存しておく変数
+
     public override void Entry()
     {
         Debug.Log("GrapFookState Exit");
@@ -202,7 +216,7 @@ public class GrapOffState : BaseState
 
     public override void Update()
     {
-        float moveY = owner.moveVector.y;
+        moveY = owner.moveVector.y;
         owner.moveVector.y = 0f;
         owner.moveVector += Quaternion.Euler(0f, owner.cameraRotation, 0f) * owner.KeyInput() * inputForce * Time.deltaTime;
         if(owner.moveVector.magnitude > maxSpeed)
@@ -215,7 +229,6 @@ public class GrapOffState : BaseState
         owner.moveVector.y = moveY;
         owner.moveVector.y = Mathf.Clamp(owner.moveVector.y, -owner.playerMaxSpeedY, owner.playerMaxSpeedY);
         owner.character.Move(owner.moveVector * Time.deltaTime);
-        Debug.Log(owner.moveVector);
 
         if (owner.isGround)
         {
