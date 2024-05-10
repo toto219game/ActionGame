@@ -114,9 +114,9 @@ public class FloatingState : BaseState
         owner.moveVector += floatingVelocity;
 
         //Å‘å‘¬“x‚ğ’´‚¦‚Ä‚½‚ç§ŒÀ‚·‚é
-        if (owner.moveVector.magnitude > owner.playerMaxSpeed)
+        if (owner.moveVector.magnitude > owner.floatingMaxSpeed)
         {
-            owner.moveVector *= owner.playerMaxSpeed / owner.moveVector.magnitude;
+            owner.moveVector *= owner.floatingMaxSpeed / owner.moveVector.magnitude;
         }
         //ã‰º‚ÌˆÚ“®(ƒWƒƒƒ“ƒv‚Æ—‰º)
         AddGravity();
@@ -130,6 +130,11 @@ public class FloatingState : BaseState
 }
 
 //===========================================================================
+
+public class BlinkState : BaseState
+{
+    private float blinkSpeed;
+}
 
 public class GrapFookState:BaseState
 {

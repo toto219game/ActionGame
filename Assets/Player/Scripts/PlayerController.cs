@@ -168,15 +168,7 @@ public class PlayerController : MonoBehaviour
 {
 
     /*
-     * PlayerControllerの課題
-     * 同じフレーム内でイベントが複数発行されると想定のステートへ遷移できない
-     * 例　・同じボタンだが現在のステートによってステートの遷移を変えたい時など
-     *      →グラップステートから同じボタンでフローティングに戻りたい時に戻れないなど
-     *      
-     * 解決策: イベントに優先順位をつける　→　めんどくさい、現在のステートによって優先順位が変わるのが大変
-     *          その他)ステートの定義内でDispatchを済ませる　→　これもめんどくさい、いろんなステートから遷移可能の場合とてもだるい
-     *          
-     *          どうしようか
+     * 
      */
 
 
@@ -191,9 +183,8 @@ public class PlayerController : MonoBehaviour
     private const float rayLength = 0.5f;
 
     //平面移動に関する
-    [SerializeField] public float groundSpeed = 10f;
     [SerializeField] public float floatingSpeed = 35f;
-    [SerializeField] public float playerMaxSpeed { get; private set; } = 15f;
+    [SerializeField] public float floatingMaxSpeed { get; private set; } = 15f;
     [SerializeField] public float playerMaxSpeedY { get; private set; } = 150f;
     //平面移動に関する
     public float rotateSpeed = 5f;
@@ -338,7 +329,7 @@ public class PlayerController : MonoBehaviour
             Vector3 center = transform.position + Vector3.up * grapStartOffset;
             RaycastHit hit;
 
-            if (Physics.SphereCast(center,1.5f,playerCamera.transform.forward,out hit, 50f))
+            if (Physics.SphereCast(center,5f,playerCamera.transform.forward,out hit, 50f))
             {
                 grapTarget = hit.point;
                 stateMachine.Dispatch((int)EventID.grapleOn);
