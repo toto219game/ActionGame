@@ -180,18 +180,25 @@ public class PlayerController : MonoBehaviour
     public bool isGround { get; private set; }
     [System.NonSerialized] public float groundHeight;
     private const float rayOffset = 1f;
-    private const float rayLength = 0.5f;
+    private const float rayLength = 0.7f;
+
+    //初期位置
+    public Vector3 initPosition = Vector3.zero;
 
     //平面移動に関する
     [SerializeField] public float floatingSpeed = 35f;
     [SerializeField] public float floatingMaxSpeed { get; private set; } = 15f;
     [SerializeField] public float playerMaxSpeedY { get; private set; } = 150f;
+
     //平面移動に関する
     public float rotateSpeed = 5f;
 
     //ジャンプに関する
     public float gravity = 40f;
     public float JumpVelocity { get; set; } = 0f;
+
+    //落下判定の閾値
+    private float fallHeight = -100f;
 
     [System.NonSerialized]public Vector3 moveVector;//プロパティにした方がいい？各要素にアクセスできなくなる
 
@@ -270,6 +277,20 @@ public class PlayerController : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+
+    //ステージから落ちた時の処理
+    private void IsFalling()
+    {
+        if (transform.position.y < fallHeight)
+        {
+            character.enabled = false;
+            transform.position = initPosition;
+            Debug.Log(initPosition);
+            Debug.Log(transform.position);
+            character.enabled = true;
+        }
     }
 
     //能力のアンロック
@@ -376,6 +397,7 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        IsFalling();
         isGround = IsGround();
         cameraRotation = playerCamera.transform.localEulerAngles.y;
 

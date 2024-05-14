@@ -140,7 +140,7 @@ public class GrapFookState:BaseState
 {
     private Vector3 targetVector;
     private Vector3 centerPower;
-    private float gravity = 40f;
+    private float gravity = 55f;
     private float speed = 1f;
     private float inputForce = 3f;
 
