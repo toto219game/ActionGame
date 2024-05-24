@@ -71,13 +71,13 @@ public class JumpState : BaseState
 public class FloatingState : BaseState
 {
 
-    float jumpDeltaTime = 0f;
+    float floatDeltaTime = 0f;
     float moveY; //moveVectorのy成分を一時的に保存しておく変数
 
     //指定の秒数立たないと重力を加えない処理
     private void AddGravity(float interval = 0.1f)
     {
-        if (jumpDeltaTime > interval)
+        if (floatDeltaTime > interval)
         {
             moveY -= owner.gravity * Time.deltaTime;
         }
@@ -87,7 +87,7 @@ public class FloatingState : BaseState
     private void TransitionToGroundState(float interval = 0.2f)
     {
         //intervalの秒数はGroundStateへの遷移をロックする
-        if (jumpDeltaTime < interval) return;
+        if (floatDeltaTime < interval) return;
         if (owner.isGround)
         {
             stateMachine.Dispatch((int)EventID.ground);
@@ -97,16 +97,19 @@ public class FloatingState : BaseState
     public override void Entry()
     {
         Debug.Log("FloatingState Enter");
-        jumpDeltaTime = 0f;
+        floatDeltaTime = 0f;
         owner.eventPriority.Clear();
+        owner.eventPriority.Add(EventID.blink);
         owner.eventPriority.Add(EventID.grapleOn);
     }
 
     public override void Update()
     {
+        //y成分だけ分離する、これをしないと正しくスピードの閾値を設定できない
         moveY = owner.moveVector.y;
         owner.moveVector.y = 0f;
-        jumpDeltaTime += Time.deltaTime;
+
+        floatDeltaTime += Time.deltaTime;
 
         Vector3 floatingVelocity = Quaternion.Euler(0, owner.cameraRotation, 0) * owner.KeyInput()
             * owner.floatingSpeed * Time.deltaTime;
@@ -120,8 +123,7 @@ public class FloatingState : BaseState
         }
         //上下の移動(ジャンプと落下)
         AddGravity();
-        owner.moveVector.y = moveY;
-        owner.moveVector.y = Mathf.Clamp(owner.moveVector.y, -owner.playerMaxSpeedY, owner.playerMaxSpeedY);
+        owner.moveVector.y = Mathf.Clamp(moveY, -owner.playerMaxSpeedY, owner.playerMaxSpeedY);
         //移動処理
         owner.character.Move(owner.moveVector * Time.deltaTime);
 
@@ -133,7 +135,72 @@ public class FloatingState : BaseState
 
 public class BlinkState : BaseState
 {
-    private float blinkSpeed;
+    private float blinkSpeed = 40f;
+    private float maxSpeed = 30f;
+    private float blinkDeltaTime = 0f;
+    private float blinkMaxTime = 0.2f;
+    private float blinkForce = 3f;
+    private float moveY = 0f;
+
+    public override void Entry()
+    {
+        //初期化
+        blinkDeltaTime = 0f;
+        owner.moveVector.y = 0f;
+
+        Vector3 input;
+
+        
+        if (owner.KeyInput() == Vector3.zero)
+        {
+            //何も入力してないときは前へ
+            input = Vector3.forward;
+        }
+        else
+        {
+            //入力してるときはその方向へ
+            input = owner.KeyInput();
+        }
+
+        owner.moveVector += Quaternion.Euler(0f, owner.cameraRotation, 0f) * input * blinkSpeed;
+
+        owner.eventPriority.Clear();
+        owner.eventPriority.Add(EventID.grapleOn);
+    }
+
+    public override void Update()
+    {
+
+        owner.character.Move(owner.moveVector * Time.deltaTime);
+
+        blinkDeltaTime += Time.deltaTime;
+        if(blinkDeltaTime > blinkMaxTime)
+        {
+            moveY = owner.moveVector.y;
+            owner.moveVector.y = 0f;
+
+            owner.moveVector += owner.moveVector += Quaternion.Euler(0f, owner.cameraRotation, 0f) * owner.KeyInput() * blinkForce * Time.deltaTime;
+            if(owner.moveVector.magnitude > maxSpeed)
+            {
+                owner.moveVector *= maxSpeed / owner.moveVector.magnitude;
+            }
+
+            moveY -= owner.gravity * Time.deltaTime;
+            owner.moveVector.y = Mathf.Clamp(moveY, -owner.playerMaxSpeedY, owner.playerMaxSpeedY);
+        }
+
+        if (owner.isGround)
+        {
+            Debug.Log("blink → ground");
+            stateMachine.Dispatch((int)EventID.ground);
+        }
+    }
+
+    public override void Exit()
+    {
+        Debug.Log("BlinkState : Exit");
+    }
+
 }
 
 public class GrapFookState:BaseState
@@ -142,7 +209,7 @@ public class GrapFookState:BaseState
     private Vector3 centerPower;
     private float gravity = 55f;
     private float speed = 1f;
-    private float inputForce = 3f;
+    private float forceFactor = 3f;
 
     //ばね定数とか
     float maxSpringDistance = 0f;
@@ -163,6 +230,7 @@ public class GrapFookState:BaseState
         maxSpringDistance = grapLength * 0.8f;
         owner.eventPriority.Clear();
         owner.eventPriority.Add(EventID.grapleOff);
+        owner.eventPriority.Add(EventID.blink);
     }
 
     public override void Update()
@@ -189,7 +257,7 @@ public class GrapFookState:BaseState
 
         //移動処理
         owner.moveVector += (Vector3.down * gravity + centerPower + owner.KeyInput() * speed) * Time.deltaTime;
-        owner.moveVector += Quaternion.Euler(0, owner.cameraRotation, 0) * owner.KeyInput() * inputForce * Time.deltaTime;
+        owner.moveVector += Quaternion.Euler(0, owner.cameraRotation, 0) * owner.KeyInput() * forceFactor * Time.deltaTime;
         owner.character.Move(owner.moveVector * Time.deltaTime);
 
         //ロープ表示
@@ -207,7 +275,7 @@ public class GrapFookState:BaseState
 public class GrapOffState : BaseState
 {
     float maxSpeed;
-    float inputForce = 5f;
+    float grapOffForce = 5f;
     float gravity = 40f;
     float moveY; //moveVectorのy成分を一時的に保存しておく変数
 
@@ -217,22 +285,24 @@ public class GrapOffState : BaseState
         maxSpeed = owner.moveVector.magnitude;
         owner.eventPriority.Clear();
         owner.eventPriority.Add(EventID.grapleOn);
+        owner.eventPriority.Add(EventID.blink);
     }
 
     public override void Update()
     {
+        //y成分だけ分離する、これをしないと正しくスピードの閾値を設定できない
         moveY = owner.moveVector.y;
         owner.moveVector.y = 0f;
-        owner.moveVector += Quaternion.Euler(0f, owner.cameraRotation, 0f) * owner.KeyInput() * inputForce * Time.deltaTime;
+
+        owner.moveVector += Quaternion.Euler(0f, owner.cameraRotation, 0f) * owner.KeyInput() * grapOffForce * Time.deltaTime;
         if(owner.moveVector.magnitude > maxSpeed)
         {
             owner.moveVector *= maxSpeed / owner.moveVector.magnitude;
         }
 
-        
+        //分離したy成分に対して重力をかけてmoveVectorに戻す
         moveY -= gravity * Time.deltaTime;
-        owner.moveVector.y = moveY;
-        owner.moveVector.y = Mathf.Clamp(owner.moveVector.y, -owner.playerMaxSpeedY, owner.playerMaxSpeedY);
+        owner.moveVector.y = Mathf.Clamp(moveY, -owner.playerMaxSpeedY, owner.playerMaxSpeedY);
         owner.character.Move(owner.moveVector * Time.deltaTime);
 
         if (owner.isGround)

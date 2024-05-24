@@ -99,7 +99,7 @@ public class PlayerCommand
     [SerializeField] int mouseButton;
     [SerializeField] Timing timing;
 
-    public PlayerCommand(KeyCode k,Timing t,bool enable=true)
+    public PlayerCommand(KeyCode k,Timing t,bool enable=false)
     {
         key = k;
         timing = t;
@@ -107,7 +107,7 @@ public class PlayerCommand
         keyEnable = enable;
     }
 
-    public  PlayerCommand(int num,Timing t, bool enable=true)
+    public  PlayerCommand(int num,Timing t, bool enable=false)
     {
         mouseButton = num;
         timing = t;
@@ -214,10 +214,10 @@ public class PlayerController : MonoBehaviour
     
     //コマンド(キーコン)
     [SerializeField] PlayerCommand grapCommand = new PlayerCommand(0, PlayerCommand.Timing.down,false);
+    [SerializeField] PlayerCommand blinkCommand = new PlayerCommand(KeyCode.E, PlayerCommand.Timing.down, false);
 
-    //グラップテスト
+    //グラップリングにかかわる変数
     public Vector3 grapTarget;
-
     [System.NonSerialized] public LineRenderer line;
     private float grapStartOffset = 2f;
 
@@ -231,11 +231,12 @@ public class PlayerController : MonoBehaviour
         ground,
         jump,
         floating,
+        blink,
         grapleOn,
         grapleOff
     }
 
-    //キー入力(WASD)
+    //キー入力(WASD)　正規化済み
     public Vector3 KeyInput()
     {
 
@@ -287,8 +288,8 @@ public class PlayerController : MonoBehaviour
         {
             character.enabled = false;
             transform.position = initPosition;
-            Debug.Log(initPosition);
-            Debug.Log(transform.position);
+            /*Debug.Log(initPosition);
+            Debug.Log(transform.position);*/
             character.enabled = true;
         }
     }
@@ -299,7 +300,7 @@ public class PlayerController : MonoBehaviour
         switch (id)
         {
             case AbilityID.blink:
-                /*何らかの処理*/
+                blinkCommand.Enable();
                 return;
 
             case AbilityID.sliding:
@@ -320,26 +321,63 @@ public class PlayerController : MonoBehaviour
         }
     }
     
-    //能力関連のステートの遷移は１フレームに１回にする関数
+    //能力関連のステートの遷移は１フレームに１回に限定する関数
     private void ManageStateTransition()
     {
+
+        //一回確認しただけでreturnしてしまう！！！！！
         foreach(EventID id in eventPriority)
         {
             switch (id)
             {
+                case EventID.blink:
+                    if (blinkCommand.CommandInput())
+                    {
+                        stateMachine.Dispatch((int)EventID.blink);
+                        return;
+                    }
+                    break;
+                    
+
+
                 case EventID.grapleOn:
-                    ToGrapState();
-                    return;
+                    if (grapCommand.CommandInput())
+                    {
+                        Vector3 center = transform.position + Vector3.up * grapStartOffset;
+                        RaycastHit hit;
+
+                        if (Physics.SphereCast(center, 5f, playerCamera.transform.forward, out hit, 50f))
+                        {
+                            grapTarget = hit.point;
+                            stateMachine.Dispatch((int)EventID.grapleOn);
+                        }
+                        return;
+                    }
+                    break;
+                    
 
                 case EventID.grapleOff:
-                    ToGrapOffState();
-                    return;
+                    if (grapCommand.CommandInput())
+                    {
+                        stateMachine.Dispatch((int)EventID.grapleOff);
+                        return;
+                    }
+                    break;
 
                 default:
                     return;
             }
         }
         return;
+    }
+
+    //ブリンクステートへの移行について
+    private void ToBlinkState()
+    {
+        if (blinkCommand.CommandInput())
+        {
+            stateMachine.Dispatch((int)EventID.blink);
+        }
     }
 
     //グラップステートへの移行について
@@ -357,7 +395,6 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
-
     private void ToGrapOffState()
     {
         if (grapCommand.CommandInput())
@@ -379,10 +416,13 @@ public class PlayerController : MonoBehaviour
         stateMachine.AddTransition<GroundState, FloatingState>((int)EventID.floating);
         stateMachine.AddTransition<JumpState, FloatingState>((int)EventID.floating);
         stateMachine.AddTransition<FloatingState, GroundState>((int)EventID.ground);
+        stateMachine.AddTransition<FloatingState, BlinkState>((int)EventID.blink);
+        stateMachine.AddTransition<BlinkState, GroundState>((int)EventID.ground);
         stateMachine.AddTransition<FloatingState, GrapFookState>((int)EventID.grapleOn);
         stateMachine.AddTransition<GrapFookState, GrapOffState>((int)EventID.grapleOff);
         stateMachine.AddTransition<GrapOffState, GroundState>((int)EventID.ground);
         stateMachine.AddTransition<GrapOffState, GrapFookState>((int)EventID.grapleOn);
+        stateMachine.AddTransition<GrapOffState, BlinkState>((int)EventID.blink);
 
 
         if (isGround = IsGround())

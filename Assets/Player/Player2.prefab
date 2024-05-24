@@ -180,7 +180,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: f688486820c50d544a9dfc7dccf15191, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -225,6 +225,37 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
+--- !u!1 &4721788447721439576
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2067001520255639290}
+  m_Layer: 6
+  m_Name: CameraTarget
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2067001520255639290
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4721788447721439576}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1340591729260534843}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4802160182637657144
 GameObject:
   m_ObjectHideFlags: 0
@@ -261,6 +292,7 @@ Transform:
   - {fileID: 7999687417236554041}
   - {fileID: 289921076676046942}
   - {fileID: 2993431949604666863}
+  - {fileID: 2067001520255639290}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &6069977267752802089
@@ -324,18 +356,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 458d83ccee3ba074ca087247bc4a54f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  groundSpeed: 10
+  initPosition: {x: 0, y: 0, z: 0}
   floatingSpeed: 35
   rotateSpeed: 5
   gravity: 40
   groundMove:
-    groundSpeed: 10
+    groundSpeed: 15
   grapCommand:
     isMouse: 1
     key: 0
     mouseButton: 0
     timing: 2
-  testTarget: {fileID: 0}
+  blinkCommand:
+    isMouse: 0
+    key: 101
+    mouseButton: 0
+    timing: 2
+  grapTarget: {x: 0, y: 0, z: 0}
 --- !u!120 &4444332561207083360
 LineRenderer:
   serializedVersion: 2
@@ -357,7 +394,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 0}
+  - {fileID: 2100000, guid: 28f1b0eedacd28e4e8b267216d1cecf9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -387,7 +424,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0.010311127
-        value: 0.25541306
+        value: 0.29004288
         inSlope: 0
         outSlope: 0
         tangentMode: 0
