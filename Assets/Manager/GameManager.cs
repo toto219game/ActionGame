@@ -24,10 +24,29 @@ public class GameManager : MonoBehaviour
     [SerializeField] private UIManager uiManager;
     [SerializeField] private TargetItemManager tiManager;
 
+    private bool isPause;
+
     public bool GameClearFlag { get; private set; } = false;
 
     //残りのTargetItem個数GameManager用
     private int counter;
+
+    private void Pause()
+    {
+        //timeScaleを0にして操作不能にする
+        Time.timeScale = 0;
+        isPause = true;
+        uiManager.DisplayPause();
+        Cursor.lockState = CursorLockMode.None;
+    }
+    private void EndPause()
+    {
+        //timeScaleを1にして操作可能にする
+        Time.timeScale = 1;
+        isPause = false;
+        uiManager.HidePause();
+        Cursor.lockState = CursorLockMode.Locked;
+    }
 
     private void GameClear()
     {
@@ -56,14 +75,30 @@ public class GameManager : MonoBehaviour
     }
 
     private void Update()
-    { 
+    {
 
         counter = tiManager.TotalNum;
-        if (!GameClearFlag)
+
+        if (GameClearFlag) return;
+
+        
+        if (isPause)
         {
+            if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                EndPause();
+            }
+        }
+        else
+        {
+            if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                Pause();
+            }
             uiManager.CounterUpdate(counter);
             uiManager.TimerUpdate();
         }
+        
     }
 
     private void LateUpdate()

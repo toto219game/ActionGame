@@ -216,6 +216,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] PlayerCommand grapCommand = new PlayerCommand(0, PlayerCommand.Timing.down,false);
     [SerializeField] PlayerCommand blinkCommand = new PlayerCommand(KeyCode.E, PlayerCommand.Timing.down, false);
 
+    //キー入力が有効かどうか。。。いるかどうかわからない一応置いておく=============
+    private bool inputEnable = true;
+    //=============================================================================
+
     //グラップリングにかかわる変数
     public Vector3 grapTarget;
     [System.NonSerialized] public LineRenderer line;
@@ -260,7 +264,16 @@ public class PlayerController : MonoBehaviour
             inputX = -1;
         }
 
-        return new Vector3(inputX, 0, inputZ).normalized;
+        //入力が有効だったら正常に返す、有効じゃなかったらゼロ
+        if (inputEnable)
+        {
+            return new Vector3(inputX, 0, inputZ).normalized;
+        }
+        else
+        {
+            return Vector3.zero;
+        }
+        
     }
 
     //接地判定
@@ -445,6 +458,7 @@ public class PlayerController : MonoBehaviour
 
 
         ManageStateTransition();
+
     }
     //ギズモ表示させたいとき使う
     /*
