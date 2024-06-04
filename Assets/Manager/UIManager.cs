@@ -44,12 +44,16 @@ public class UIManager : MonoBehaviour
         }
     }
     #endregion
+
     [SerializeField] private TextMeshProUGUI targetItemCounter;
-    [SerializeField] private GameObject ClearText;
+    [SerializeField] private Canvas clearCanvas;
+    [SerializeField] private Canvas pauseCanvas;
 
     private Timer timer;
     [SerializeField] private TextMeshProUGUI timeCounter;
 
+
+    //Mainシーンでの要素
     //タイマーの更新
     public void TimerUpdate()
     {
@@ -61,10 +65,23 @@ public class UIManager : MonoBehaviour
     {
         targetItemCounter.text = num.ToString();
     }
+
+    //pause画面表示
+    public void DisplayPause()
+    {
+        pauseCanvas.gameObject.SetActive(true);
+    }
+
+    //pause画面非表示
+    public void HidePause()
+    {
+        pauseCanvas.gameObject.SetActive(false);
+    }
+
     //クリア表示
     public void DisplayClear()
     {
-        ClearText.SetActive(true);
+        clearCanvas.gameObject.SetActive(true);
     }
 
     public void UIManagerInit()

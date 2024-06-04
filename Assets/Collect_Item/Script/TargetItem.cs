@@ -6,7 +6,8 @@ public enum AbilityID
     blink,
     sliding,
     grapHook,
-    wallJump
+    wallJump,
+    doubleJump
 }
 
 [CreateAssetMenu(fileName ="TargetItem_instance",menuName ="ScriptableObject/TargetItem")]
