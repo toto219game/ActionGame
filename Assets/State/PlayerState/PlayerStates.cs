@@ -101,6 +101,7 @@ public class FloatingState : BaseState
         owner.eventPriority.Clear();
         owner.eventPriority.Add(EventID.blink);
         owner.eventPriority.Add(EventID.grapleOn);
+        owner.eventPriority.Add(EventID.clingWall);
     }
 
     public override void Update()
@@ -131,7 +132,7 @@ public class FloatingState : BaseState
     }
 }
 
-//===========================================================================
+//能力関連のステート==========================================================
 
 public class BlinkState : BaseState
 {
@@ -170,10 +171,10 @@ public class BlinkState : BaseState
 
     public override void Update()
     {
-
+        blinkDeltaTime += Time.deltaTime;
         owner.character.Move(owner.moveVector * Time.deltaTime);
 
-        blinkDeltaTime += Time.deltaTime;
+        
         if(blinkDeltaTime > blinkMaxTime)
         {
             moveY = owner.moveVector.y;
@@ -315,4 +316,9 @@ public class GrapOffState : BaseState
     {
         Debug.Log("GrapOffState Exit");
     }
+}
+
+public class ClingWallState : BaseState
+{
+    Vector3 wallPointVector;
 }

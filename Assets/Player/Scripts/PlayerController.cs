@@ -223,7 +223,14 @@ public class PlayerController : MonoBehaviour
     //グラップリングにかかわる変数
     public Vector3 grapTarget;
     [System.NonSerialized] public LineRenderer line;
-    private float grapStartOffset = 2f;
+    private float grapStartOffset = 2f;     //後で変更するかもしれない
+
+    //壁への判定のためのもの
+    public Vector3 wallPoint;
+    private float wallRayOffset = 1f;      //後で変更するかもしれない
+    private float wallRayLength = 1.415f;
+
+    [SerializeField] private Transform testObj;
 
     //ギズモのためのもの
     /* bool isHit;
@@ -237,7 +244,8 @@ public class PlayerController : MonoBehaviour
         floating,
         blink,
         grapleOn,
-        grapleOff
+        grapleOff,
+        clingWall
     }
 
     //キー入力(WASD)　正規化済み
@@ -337,8 +345,6 @@ public class PlayerController : MonoBehaviour
     //能力関連のステートの遷移は１フレームに１回に限定する関数
     private void ManageStateTransition()
     {
-
-        //一回確認しただけでreturnしてしまう！！！！！
         foreach(EventID id in eventPriority)
         {
             switch (id)
@@ -356,12 +362,12 @@ public class PlayerController : MonoBehaviour
                 case EventID.grapleOn:
                     if (grapCommand.CommandInput())
                     {
-                        Vector3 center = transform.position + Vector3.up * grapStartOffset;
-                        RaycastHit hit;
+                        Vector3 grapCastCenter = transform.position + Vector3.up * grapStartOffset;
+                        RaycastHit grapHit;
 
-                        if (Physics.SphereCast(center, 5f, playerCamera.transform.forward, out hit, 50f))
+                        if (Physics.SphereCast(grapCastCenter, 5f, playerCamera.transform.forward, out grapHit, 50f))
                         {
-                            grapTarget = hit.point;
+                            grapTarget = grapHit.point;
                             stateMachine.Dispatch((int)EventID.grapleOn);
                         }
                         return;
@@ -375,6 +381,20 @@ public class PlayerController : MonoBehaviour
                         stateMachine.Dispatch((int)EventID.grapleOff);
                         return;
                     }
+                    break;
+
+                case EventID.clingWall:
+                    /*Vector3 wallCastCenter = transform.position + Vector3.up * wallCastOffset;
+                    RaycastHit wallHit;
+                    Debug.Log("aaaaa");
+                    if(Physics.SphereCast(wallCastCenter,2f,Vector3.up, out wallHit))
+                    {
+                        wallPoint = wallHit.point;
+                        stateMachine.Dispatch((int)EventID.clingWall);
+                        Debug.Log("hitWall!!!!!!!!!!!!!!!!!!!!!!!");
+                        return;
+                    }*/
+                    WallRayCast();
                     break;
 
                 default:
@@ -416,6 +436,38 @@ public class PlayerController : MonoBehaviour
         }
     }
     
+    //壁にとどまるステートへの遷移のためのRayCast処理
+    private void WallRayCast()
+    {
+        bool rayflag = false;
+        Vector3 rayOrigin = transform.position + Vector3.up * wallRayOffset;
+        Vector3 wallNormal = Vector3.zero;
+        Ray[] wallRays = new Ray[4];
+        RaycastHit wallHit;
+        LayerMask wallRayMask = 1 << LayerMask.NameToLayer("Ground");
+
+        wallRays[0] = new Ray(rayOrigin, Vector3.forward);
+        wallRays[1] = new Ray(rayOrigin, Vector3.back);
+        wallRays[2] = new Ray(rayOrigin, Vector3.right);
+        wallRays[3] = new Ray(rayOrigin, Vector3.left);
+
+        foreach(Ray wallRay in wallRays)
+        {
+            if (Physics.Raycast(wallRay, out wallHit,wallRayLength * 0.5f,wallRayMask))
+            {
+                wallNormal = wallHit.normal;
+                rayflag = true;
+                break;
+            }
+        }
+
+        if (!rayflag) return;
+
+        if(Physics.Raycast(rayOrigin,-wallNormal, out wallHit,0.51f, wallRayMask))
+        {
+            testObj.position = wallHit.point;
+        }
+    }
     private void Start()
     {
         //Debug.Log(Mathf.Atan(10 / 2 * Mathf.PI));
@@ -460,6 +512,12 @@ public class PlayerController : MonoBehaviour
         ManageStateTransition();
 
     }
+
+    /*private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        wallPoint = hit.point;
+    }*/
+
     //ギズモ表示させたいとき使う
     /*
     private void OnDrawGizmos()
@@ -477,4 +535,5 @@ public class PlayerController : MonoBehaviour
        
     }
     */
+
 }
