@@ -170,7 +170,8 @@ public class PlayerController : MonoBehaviour
     /*
      * 
      */
-
+    //変数宣言部
+    #region
 
     //カメラに関すること
     private Camera playerCamera;
@@ -221,16 +222,19 @@ public class PlayerController : MonoBehaviour
     //=============================================================================
 
     //グラップリングにかかわる変数
+    [Header("グラップリングのパラメータ")]
     public Vector3 grapTarget;
     [System.NonSerialized] public LineRenderer line;
     private float grapStartOffset = 2f;     //後で変更するかもしれない
 
+    [Space]
     //壁への判定のためのもの
     public Vector3 wallPoint;
-    private float wallRayOffset = 1f;      //後で変更するかもしれない
+    public Vector3 wallNormal;
+    public float wallRayOffset = 1f;      //後で変更するかもしれない
     private float wallRayLength = 1.415f;
+    public bool enableCling = true;
 
-    [SerializeField] private Transform testObj;
 
     //ギズモのためのもの
     /* bool isHit;
@@ -245,8 +249,12 @@ public class PlayerController : MonoBehaviour
         blink,
         grapleOn,
         grapleOff,
-        clingWall
+        clingWall,
+        wallJump,
+        wallOff
     }
+
+    #endregion
 
     //キー入力(WASD)　正規化済み
     public Vector3 KeyInput()
@@ -284,6 +292,12 @@ public class PlayerController : MonoBehaviour
         
     }
 
+    //カメラの方向も考慮した入力
+    public Vector3 InputVector()
+    {
+        return Quaternion.Euler(0f, cameraRotation, 0f) * KeyInput();
+    }
+
     //接地判定
     private bool IsGround()
     {
@@ -314,6 +328,7 @@ public class PlayerController : MonoBehaviour
             character.enabled = true;
         }
     }
+
 
     //能力のアンロック
     public void UnlockPlayerAbility(AbilityID id)
@@ -384,17 +399,15 @@ public class PlayerController : MonoBehaviour
                     break;
 
                 case EventID.clingWall:
-                    /*Vector3 wallCastCenter = transform.position + Vector3.up * wallCastOffset;
-                    RaycastHit wallHit;
-                    Debug.Log("aaaaa");
-                    if(Physics.SphereCast(wallCastCenter,2f,Vector3.up, out wallHit))
+                    if (ToClingWallState()) return;
+                    break;
+
+                case EventID.wallJump:
+                    if (Input.GetKeyDown(KeyCode.Space))
                     {
-                        wallPoint = wallHit.point;
-                        stateMachine.Dispatch((int)EventID.clingWall);
-                        Debug.Log("hitWall!!!!!!!!!!!!!!!!!!!!!!!");
+                        stateMachine.Dispatch((int)EventID.wallJump);
                         return;
-                    }*/
-                    WallRayCast();
+                    }
                     break;
 
                 default:
@@ -436,12 +449,12 @@ public class PlayerController : MonoBehaviour
         }
     }
     
-    //壁にとどまるステートへの遷移のためのRayCast処理
-    private void WallRayCast()
+    //壁にとどまるステートへの遷移のための処理
+    private bool ToClingWallState()
     {
         bool rayflag = false;
         Vector3 rayOrigin = transform.position + Vector3.up * wallRayOffset;
-        Vector3 wallNormal = Vector3.zero;
+        wallNormal = Vector3.zero;
         Ray[] wallRays = new Ray[4];
         RaycastHit wallHit;
         LayerMask wallRayMask = 1 << LayerMask.NameToLayer("Ground");
@@ -461,13 +474,17 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        if (!rayflag) return;
+        if (!rayflag) return false;
 
         if(Physics.Raycast(rayOrigin,-wallNormal, out wallHit,0.51f, wallRayMask))
         {
-            testObj.position = wallHit.point;
+            wallPoint = wallHit.point;
+            stateMachine.Dispatch((int)EventID.clingWall);
+            return true;
         }
+        return false;
     }
+
     private void Start()
     {
         //Debug.Log(Mathf.Atan(10 / 2 * Mathf.PI));
@@ -479,15 +496,26 @@ public class PlayerController : MonoBehaviour
         
         stateMachine.AddTransition<GroundState, JumpState>((int)EventID.jump);
         stateMachine.AddTransition<GroundState, FloatingState>((int)EventID.floating);
+
         stateMachine.AddTransition<JumpState, FloatingState>((int)EventID.floating);
+
         stateMachine.AddTransition<FloatingState, GroundState>((int)EventID.ground);
         stateMachine.AddTransition<FloatingState, BlinkState>((int)EventID.blink);
+        stateMachine.AddTransition<FloatingState, GrapOnState>((int)EventID.grapleOn);
+        stateMachine.AddTransition<FloatingState, ClingWallState>((int)EventID.clingWall);
+
         stateMachine.AddTransition<BlinkState, GroundState>((int)EventID.ground);
-        stateMachine.AddTransition<FloatingState, GrapFookState>((int)EventID.grapleOn);
-        stateMachine.AddTransition<GrapFookState, GrapOffState>((int)EventID.grapleOff);
+        stateMachine.AddTransition<BlinkState, GrapOnState>((int)EventID.grapleOn);
+        stateMachine.AddTransition<GrapOnState, GrapOffState>((int)EventID.grapleOff);
         stateMachine.AddTransition<GrapOffState, GroundState>((int)EventID.ground);
-        stateMachine.AddTransition<GrapOffState, GrapFookState>((int)EventID.grapleOn);
+        stateMachine.AddTransition<GrapOffState, GrapOnState>((int)EventID.grapleOn);
         stateMachine.AddTransition<GrapOffState, BlinkState>((int)EventID.blink);
+
+        stateMachine.AddTransition<ClingWallState, WallOffState>((int)EventID.wallOff);
+        stateMachine.AddTransition<ClingWallState, WallJumpState>((int)EventID.wallJump);
+        stateMachine.AddTransition<WallJumpState, WallOffState>((int)EventID.wallOff);
+        stateMachine.AddTransition<WallOffState, GroundState>((int)EventID.ground);
+
 
 
         if (isGround = IsGround())
@@ -512,11 +540,6 @@ public class PlayerController : MonoBehaviour
         ManageStateTransition();
 
     }
-
-    /*private void OnControllerColliderHit(ControllerColliderHit hit)
-    {
-        wallPoint = hit.point;
-    }*/
 
     //ギズモ表示させたいとき使う
     /*

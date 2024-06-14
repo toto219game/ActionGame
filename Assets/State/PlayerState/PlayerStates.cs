@@ -4,16 +4,27 @@ using UnityEngine;
 using BaseState = StateMachine<PlayerController>.BaseState;
 using EventID = PlayerController.EventID;
 
+public class PlayerState : BaseState
+{
+    protected List<EventID> priorityList = new List<EventID>();
+}
+
 //基本のステート============================================================
 [System.Serializable]
-public class GroundState:BaseState
-{
+public class GroundState:PlayerState
+{    
+    public GroundState()
+    {
+        priorityList.Add(EventID.grapleOn);
+    }
+
+    //基本の３関数===================================================================================================
+
     public override void Entry()
     {
         Debug.Log("GroundState Enter");
         owner.JumpVelocity = 0f;
-        owner.eventPriority.Clear();
-        owner.eventPriority.Add(EventID.grapleOn);
+        owner.eventPriority = priorityList;
     }
 
     public override void Update()
@@ -68,11 +79,18 @@ public class JumpState : BaseState
     }
 }
 
-public class FloatingState : BaseState
+public class FloatingState : PlayerState
 {
 
     float floatDeltaTime = 0f;
     float moveY; //moveVectorのy成分を一時的に保存しておく変数
+
+    public FloatingState()
+    {
+        priorityList.Add(EventID.blink);
+        priorityList.Add(EventID.grapleOn);
+        priorityList.Add(EventID.clingWall);
+    }
 
     //指定の秒数立たないと重力を加えない処理
     private void AddGravity(float interval = 0.1f)
@@ -94,14 +112,12 @@ public class FloatingState : BaseState
         }
     }
 
+    //基本の３関数===================================================================================================
     public override void Entry()
     {
         Debug.Log("FloatingState Enter");
         floatDeltaTime = 0f;
-        owner.eventPriority.Clear();
-        owner.eventPriority.Add(EventID.blink);
-        owner.eventPriority.Add(EventID.grapleOn);
-        owner.eventPriority.Add(EventID.clingWall);
+        owner.eventPriority = priorityList;
     }
 
     public override void Update()
@@ -112,8 +128,7 @@ public class FloatingState : BaseState
 
         floatDeltaTime += Time.deltaTime;
 
-        Vector3 floatingVelocity = Quaternion.Euler(0, owner.cameraRotation, 0) * owner.KeyInput()
-            * owner.floatingSpeed * Time.deltaTime;
+        Vector3 floatingVelocity = owner.InputVector() * owner.floatingSpeed * Time.deltaTime;
 
         owner.moveVector += floatingVelocity;
 
@@ -134,7 +149,7 @@ public class FloatingState : BaseState
 
 //能力関連のステート==========================================================
 
-public class BlinkState : BaseState
+public class BlinkState : PlayerState
 {
     private float blinkSpeed = 40f;
     private float maxSpeed = 30f;
@@ -143,8 +158,14 @@ public class BlinkState : BaseState
     private float blinkForce = 3f;
     private float moveY = 0f;
 
+    public BlinkState()
+    {
+        priorityList.Add(EventID.grapleOn);
+    }
+
     public override void Entry()
     {
+        Debug.Log("entry : BlinkState");
         //初期化
         blinkDeltaTime = 0f;
         owner.moveVector.y = 0f;
@@ -165,8 +186,7 @@ public class BlinkState : BaseState
 
         owner.moveVector += Quaternion.Euler(0f, owner.cameraRotation, 0f) * input * blinkSpeed;
 
-        owner.eventPriority.Clear();
-        owner.eventPriority.Add(EventID.grapleOn);
+        owner.eventPriority = priorityList;
     }
 
     public override void Update()
@@ -180,7 +200,7 @@ public class BlinkState : BaseState
             moveY = owner.moveVector.y;
             owner.moveVector.y = 0f;
 
-            owner.moveVector += owner.moveVector += Quaternion.Euler(0f, owner.cameraRotation, 0f) * owner.KeyInput() * blinkForce * Time.deltaTime;
+            owner.moveVector += owner.moveVector += owner.InputVector() * blinkForce * Time.deltaTime;
             if(owner.moveVector.magnitude > maxSpeed)
             {
                 owner.moveVector *= maxSpeed / owner.moveVector.magnitude;
@@ -200,11 +220,15 @@ public class BlinkState : BaseState
     public override void Exit()
     {
         Debug.Log("BlinkState : Exit");
+        foreach (EventID e in priorityList)
+        {
+            Debug.Log(e);
+        }
     }
 
 }
 
-public class GrapFookState:BaseState
+public class GrapOnState:PlayerState
 {
     private Vector3 targetVector;
     private Vector3 centerPower;
@@ -223,15 +247,20 @@ public class GrapFookState:BaseState
     //ロープの原点
     float ropeOffset = 1f;
 
+    public GrapOnState()
+    {
+        priorityList.Add(EventID.grapleOff);
+        priorityList.Add(EventID.blink);
+    }
+
     public override void Entry()
     {
         Debug.Log("GrapFookState Enter");
         owner.line.positionCount = 2;
         grapLength = (owner.grapTarget - owner.transform.position).magnitude;
         maxSpringDistance = grapLength * 0.8f;
-        owner.eventPriority.Clear();
-        owner.eventPriority.Add(EventID.grapleOff);
-        owner.eventPriority.Add(EventID.blink);
+
+        owner.eventPriority = priorityList;
     }
 
     public override void Update()
@@ -258,7 +287,7 @@ public class GrapFookState:BaseState
 
         //移動処理
         owner.moveVector += (Vector3.down * gravity + centerPower + owner.KeyInput() * speed) * Time.deltaTime;
-        owner.moveVector += Quaternion.Euler(0, owner.cameraRotation, 0) * owner.KeyInput() * forceFactor * Time.deltaTime;
+        owner.moveVector += owner.InputVector() * forceFactor * Time.deltaTime;
         owner.character.Move(owner.moveVector * Time.deltaTime);
 
         //ロープ表示
@@ -273,20 +302,25 @@ public class GrapFookState:BaseState
     }
 }
 
-public class GrapOffState : BaseState
+public class GrapOffState : PlayerState
 {
     float maxSpeed;
     float grapOffForce = 5f;
     float gravity = 40f;
     float moveY; //moveVectorのy成分を一時的に保存しておく変数
 
+    public GrapOffState()
+    {
+        priorityList.Add(EventID.grapleOn);
+        priorityList.Add(EventID.blink);
+    }
+
     public override void Entry()
     {
         Debug.Log("GrapFookState Exit");
         maxSpeed = owner.moveVector.magnitude;
-        owner.eventPriority.Clear();
-        owner.eventPriority.Add(EventID.grapleOn);
-        owner.eventPriority.Add(EventID.blink);
+
+        owner.eventPriority = priorityList;
     }
 
     public override void Update()
@@ -295,7 +329,7 @@ public class GrapOffState : BaseState
         moveY = owner.moveVector.y;
         owner.moveVector.y = 0f;
 
-        owner.moveVector += Quaternion.Euler(0f, owner.cameraRotation, 0f) * owner.KeyInput() * grapOffForce * Time.deltaTime;
+        owner.moveVector += owner.InputVector() * grapOffForce * Time.deltaTime;
         if(owner.moveVector.magnitude > maxSpeed)
         {
             owner.moveVector *= maxSpeed / owner.moveVector.magnitude;
@@ -318,7 +352,119 @@ public class GrapOffState : BaseState
     }
 }
 
-public class ClingWallState : BaseState
+public class ClingWallState : PlayerState
 {
     Vector3 wallPointVector;
+    Vector3 wallPoint;
+    Vector3 rayOrigin;
+    float rayLength = 0.7f;
+    RaycastHit hit;
+    LayerMask mask;
+    float cos;
+
+    float clingMaxSpeed = 15f;
+    float clingMinSpeed = 0.05f;
+    float clingForce = 95f;
+    float damplerForce = 50f;
+    float deltaTime = 0f;
+    float wallMaxTime = 1f;
+    float intervalTime = 1f;
+
+    Vector3 deltaVector;
+
+    //レイヤーマスクの取得のためのコンストラクタ
+    public ClingWallState()
+    {
+        mask = 1 << LayerMask.NameToLayer("Ground");
+        priorityList.Add(EventID.wallJump);
+        priorityList.Add(EventID.wallOff);
+        priorityList.Add(EventID.blink);
+    }
+
+    public override void Entry()
+    {
+        Debug.Log("Enter : ClingWallState");
+        
+        rayOrigin = owner.transform.position + Vector3.up * owner.wallRayOffset;
+        wallPoint = owner.wallPoint;
+        wallPointVector = wallPoint - rayOrigin;
+        owner.moveVector.y = 0f;
+        deltaTime = 0f;
+
+        owner.eventPriority = priorityList;
+    }
+
+    public override void Update()
+    {
+        rayOrigin = owner.transform.position + Vector3.up * owner.wallRayOffset;
+
+        if(Physics.Raycast(rayOrigin,wallPointVector,out hit, rayLength,mask) && deltaTime < wallMaxTime)
+        {
+            deltaTime += Time.deltaTime;
+            wallPoint = hit.point;
+            owner.wallNormal = hit.normal;
+
+            deltaVector = Vector3.Cross(wallPointVector.normalized, Vector3.up);
+            cos = Vector3.Dot(deltaVector, owner.InputVector());
+            deltaVector *= cos * clingForce;
+
+            owner.moveVector += (deltaVector + -owner.moveVector.normalized * damplerForce) * Time.deltaTime;
+            if (owner.moveVector.magnitude > clingMaxSpeed)
+            {
+                owner.moveVector *= clingMaxSpeed / owner.moveVector.magnitude;
+            }
+            else if(owner.moveVector.magnitude < clingMinSpeed)
+            {
+                owner.moveVector = Vector3.zero;
+            }
+
+            owner.character.Move(owner.moveVector * Time.deltaTime);
+
+        }
+        else
+        {
+            stateMachine.Dispatch((int)EventID.wallOff);
+        }
+    }
+
+    public override void Exit()
+    {
+        Debug.Log("Exit : ClingWallState");
+    }
+}
+public class WallJumpState : PlayerState
+{
+    float wallJumpPower = 15f;
+    public override void Entry()
+    {
+        Debug.Log("Enter: WallJumpState");
+        owner.moveVector += Vector3.up * wallJumpPower + owner.wallNormal * wallJumpPower;
+        stateMachine.Dispatch((int)EventID.wallOff);
+    }
+
+    public override void Exit()
+    {
+        Debug.Log("Exit : WallJumpState");
+    }
+}
+
+public class WallOffState : FloatingState
+{
+
+    public WallOffState()
+    {
+        priorityList.Add(EventID.ground);
+    }
+
+    public override void Entry()
+    {
+        Debug.Log("enter : WalloffState");
+        owner.eventPriority = priorityList;
+    }
+
+
+    public override void Exit()
+    {
+        Debug.Log("Exit : WallOffState");
+    }
 }
