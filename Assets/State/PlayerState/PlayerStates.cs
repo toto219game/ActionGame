@@ -82,7 +82,7 @@ public class JumpState : BaseState
 public class FloatingState : PlayerState
 {
 
-    float floatDeltaTime = 0f;
+    protected float floatDeltaTime = 0f;
     float moveY; //moveVectorのy成分を一時的に保存しておく変数
 
     public FloatingState()
@@ -117,6 +117,7 @@ public class FloatingState : PlayerState
     {
         Debug.Log("FloatingState Enter");
         floatDeltaTime = 0f;
+        owner.wallOffTime = 0.2f;   //壁に張り付けるまでのインターバルを発声させるためにこうしている、0じゃないのは単純に調整
         owner.eventPriority = priorityList;
     }
 
@@ -366,9 +367,13 @@ public class ClingWallState : PlayerState
     float clingMinSpeed = 0.05f;
     float clingForce = 95f;
     float damplerForce = 50f;
+    float wallGravity = 10f;
+    float moveY = 0f;
+
     float deltaTime = 0f;
+    float wallOffDeltaTime = 0f;
     float wallMaxTime = 1f;
-    float intervalTime = 1f;
+    float wallOffTime = 0.2f;
 
     Vector3 deltaVector;
 
@@ -377,8 +382,29 @@ public class ClingWallState : PlayerState
     {
         mask = 1 << LayerMask.NameToLayer("Ground");
         priorityList.Add(EventID.wallJump);
-        priorityList.Add(EventID.wallOff);
+        priorityList.Add(EventID.floating);
         priorityList.Add(EventID.blink);
+    }
+
+    private void WallOff(Vector3 input,Vector3 normal)
+    {
+        deltaTime += Time.deltaTime;
+
+        if(Vector3.Dot(input,normal) > 0.8f)
+        {
+            wallOffDeltaTime += Time.deltaTime;
+        }
+
+        if(wallOffDeltaTime > wallOffTime)
+        {
+            stateMachine.Dispatch((int)EventID.floating);
+        }
+
+        if(deltaTime > wallMaxTime)
+        {
+            stateMachine.Dispatch((int)EventID.floating);
+        }
+        
     }
 
     public override void Entry()
@@ -388,8 +414,14 @@ public class ClingWallState : PlayerState
         rayOrigin = owner.transform.position + Vector3.up * owner.wallRayOffset;
         wallPoint = owner.wallPoint;
         wallPointVector = wallPoint - rayOrigin;
+
         owner.moveVector.y = 0f;
+        deltaVector = Vector3.Cross(wallPointVector.normalized, Vector3.up);
+        cos = Vector3.Dot(deltaVector, owner.InputVector());
+        owner.moveVector = deltaVector * owner.moveVector.magnitude * cos;
+
         deltaTime = 0f;
+        wallOffDeltaTime = 0f;
 
         owner.eventPriority = priorityList;
     }
@@ -400,15 +432,20 @@ public class ClingWallState : PlayerState
 
         if(Physics.Raycast(rayOrigin,wallPointVector,out hit, rayLength,mask) && deltaTime < wallMaxTime)
         {
+            //必要な前処理
             deltaTime += Time.deltaTime;
             wallPoint = hit.point;
             owner.wallNormal = hit.normal;
+            moveY = owner.moveVector.y;     //floatingステート同様xz方向とy方向で分ける必要性あり
+            owner.moveVector.y = 0f;
+
 
             deltaVector = Vector3.Cross(wallPointVector.normalized, Vector3.up);
             cos = Vector3.Dot(deltaVector, owner.InputVector());
             deltaVector *= cos * clingForce;
 
             owner.moveVector += (deltaVector + -owner.moveVector.normalized * damplerForce) * Time.deltaTime;
+
             if (owner.moveVector.magnitude > clingMaxSpeed)
             {
                 owner.moveVector *= clingMaxSpeed / owner.moveVector.magnitude;
@@ -417,21 +454,26 @@ public class ClingWallState : PlayerState
             {
                 owner.moveVector = Vector3.zero;
             }
+            //ここまでxz方向の処理=========================================================
+            //ここからy方向の処理
+
+            moveY -= wallGravity * Time.deltaTime;
+            owner.moveVector.y = moveY;
 
             owner.character.Move(owner.moveVector * Time.deltaTime);
 
         }
-        else
-        {
-            stateMachine.Dispatch((int)EventID.wallOff);
-        }
+
+        WallOff(owner.InputVector(), owner.wallNormal);
     }
 
     public override void Exit()
     {
+        owner.wallOffTime = 0f;
         Debug.Log("Exit : ClingWallState");
     }
 }
+
 public class WallJumpState : PlayerState
 {
     float wallJumpPower = 15f;
@@ -445,26 +487,5 @@ public class WallJumpState : PlayerState
     public override void Exit()
     {
         Debug.Log("Exit : WallJumpState");
-    }
-}
-
-public class WallOffState : FloatingState
-{
-
-    public WallOffState()
-    {
-        priorityList.Add(EventID.ground);
-    }
-
-    public override void Entry()
-    {
-        Debug.Log("enter : WalloffState");
-        owner.eventPriority = priorityList;
-    }
-
-
-    public override void Exit()
-    {
-        Debug.Log("Exit : WallOffState");
     }
 }

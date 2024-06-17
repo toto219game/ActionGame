@@ -166,10 +166,16 @@ public class PlayerCommand
 [System.Serializable]
 public class PlayerController : MonoBehaviour
 {
-
     /*
-     * 
+     * wallJump能力を作った。
+     * この能力を作るにあたってClingWallStateとWallJumpStateを作った。
+     * 現状、この能力を解放をフラグで管理しているが、他の能力は直接的なフラグでの管理でないため、
+     * 能力どうしで能力の解放の仕方が違うことが気持ち悪い、歪である。
+     * 解決策としては、壁への判定自体をクラス化してそのクラスの中でのフラグで管理する案がある。
+     * そもそもwallJump意外でも壁への判定を使う場面は割とありそうなので、クラス化はとてもありかと思われる。
+     * 現状はこのまま歪な状態でも正常に動くため今回はここまでとする。
      */
+
     //変数宣言部
     #region
 
@@ -203,7 +209,7 @@ public class PlayerController : MonoBehaviour
 
     [System.NonSerialized]public Vector3 moveVector;//プロパティにした方がいい？各要素にアクセスできなくなる
 
-    //便利クラス
+    //地上移動のためのクラス
     [SerializeField] public GroundMove groundMove = new GroundMove();
 
     //キャラクターコントローラーコンポーネント
@@ -228,12 +234,15 @@ public class PlayerController : MonoBehaviour
     private float grapStartOffset = 2f;     //後で変更するかもしれない
 
     [Space]
-    //壁への判定のためのもの
+    //壁ジャンプのためのもの
     public Vector3 wallPoint;
     public Vector3 wallNormal;
     public float wallRayOffset = 1f;      //後で変更するかもしれない
     private float wallRayLength = 1.415f;
-    public bool enableCling = true;
+    public bool enableCling = true;     //
+    private float wallInterval = 0.7f;
+    public float wallOffTime { get; set; } = 0f;
+    private bool enableWallJumpAbility = false;
 
 
     //ギズモのためのもの
@@ -348,7 +357,7 @@ public class PlayerController : MonoBehaviour
                 return;
 
             case AbilityID.wallJump:
-                /*何らかの処理*/
+                enableWallJumpAbility = true;
                 return;
 
             default:
@@ -360,6 +369,7 @@ public class PlayerController : MonoBehaviour
     //能力関連のステートの遷移は１フレームに１回に限定する関数
     private void ManageStateTransition()
     {
+        UpdateWallOffTime(wallInterval);
         foreach(EventID id in eventPriority)
         {
             switch (id)
@@ -399,10 +409,19 @@ public class PlayerController : MonoBehaviour
                     break;
 
                 case EventID.clingWall:
-                    if (ToClingWallState()) return;
+                    //能力を取っているかどうか(今はフラグで管理)
+                    if (!enableWallJumpAbility) break;
+
+                    if (enableCling)
+                    {
+                        if (ToClingWallState()) return;
+                    }
                     break;
 
                 case EventID.wallJump:
+                    //能力を取っているかどうか
+                    if (!enableWallJumpAbility) break;
+
                     if (Input.GetKeyDown(KeyCode.Space))
                     {
                         stateMachine.Dispatch((int)EventID.wallJump);
@@ -485,6 +504,20 @@ public class PlayerController : MonoBehaviour
         return false;
     }
 
+    //壁張り付きのステートに遷移するインターバルを置く処理
+    private void UpdateWallOffTime(float interval)
+    {
+        if(wallOffTime < interval)
+        {
+            enableCling = false;
+            wallOffTime += Time.deltaTime;
+        }
+        else
+        {
+            enableCling = true;
+        }
+    }
+
     private void Start()
     {
         //Debug.Log(Mathf.Atan(10 / 2 * Mathf.PI));
@@ -511,10 +544,10 @@ public class PlayerController : MonoBehaviour
         stateMachine.AddTransition<GrapOffState, GrapOnState>((int)EventID.grapleOn);
         stateMachine.AddTransition<GrapOffState, BlinkState>((int)EventID.blink);
 
-        stateMachine.AddTransition<ClingWallState, WallOffState>((int)EventID.wallOff);
+        //stateMachine.AddTransition<ClingWallState, WallOffState>((int)EventID.wallOff);
+        stateMachine.AddTransition<ClingWallState, FloatingState>((int)EventID.floating);
         stateMachine.AddTransition<ClingWallState, WallJumpState>((int)EventID.wallJump);
-        stateMachine.AddTransition<WallJumpState, WallOffState>((int)EventID.wallOff);
-        stateMachine.AddTransition<WallOffState, GroundState>((int)EventID.ground);
+        stateMachine.AddTransition<WallJumpState, FloatingState>((int)EventID.wallOff);
 
 
 
@@ -538,6 +571,7 @@ public class PlayerController : MonoBehaviour
 
 
         ManageStateTransition();
+        Debug.DrawRay(transform.position, moveVector);
 
     }
 

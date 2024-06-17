@@ -65,21 +65,8 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    List<int> from = new List<int>();
-    List<int> to = new List<int>() { 99,98,97,100 };
-
     private void Start()
     {
-        to = from;
-        foreach(int n in from)
-        {
-            Debug.Log(n);
-        }
-        to.Add(5);
-        foreach (int n in from)
-        {
-            Debug.Log(n);
-        }
         Cursor.lockState = CursorLockMode.Locked;
         tiManager.Init(FlowPlayerAbility);
         uiManager.UIManagerInit();

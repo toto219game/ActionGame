@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d46e9b44d176ee4e989c7a0e79eacbd, type: 3}
-  m_Name: Slideing
+  m_Name: wallJump
   m_EditorClassIdentifier: 
   model: {fileID: 5285665834784966018, guid: 66e7e6f48de49bc47b15b51805391472, type: 3}
-  ability: 1
+  ability: 3
   spawnPoint: {fileID: 0}
