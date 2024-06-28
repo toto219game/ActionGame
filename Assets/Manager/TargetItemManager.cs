@@ -9,19 +9,19 @@ public class TargetItemManager : MonoBehaviour
     public List<AbilityID> enableAblityIDs;       //取得した能力はリストで管理する
     public int TotalNum { get; private set; }
 
-    public delegate void ManagerCallBack();
-    public ManagerCallBack unlock;
+    public delegate void AbilityCallBack();
+    private AbilityCallBack unlockAbility;
 
 
     //関数群====================================================================================
     //TIControllerの初期化（コールバック関数を渡す）
-    public void Init(ManagerCallBack callBack)
+    public void Init(AbilityCallBack callBack)
     {
         foreach(Transform child in transform)
         {
             target.Add(child.GetComponent<TargetItemController>());
         }
-        unlock = callBack;
+        unlockAbility = callBack;
         TotalNum = target.Count;
         TargetInit();
     }
@@ -52,7 +52,7 @@ public class TargetItemManager : MonoBehaviour
             }
         }
 
-        unlock();
+        unlockAbility();
     }
 
     private void TargetInit()
@@ -63,9 +63,4 @@ public class TargetItemManager : MonoBehaviour
         }
 
     }
-
-    /*private void Update()
-    {
-        CountTargetNum();
-    }*/
 }

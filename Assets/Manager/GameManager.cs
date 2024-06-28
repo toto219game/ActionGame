@@ -23,6 +23,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private PlayerController player;
     [SerializeField] private UIManager uiManager;
     [SerializeField] private TargetItemManager tiManager;
+    [SerializeField] private GoalObject goal;
 
     private bool isPause;
 
@@ -30,6 +31,9 @@ public class GameManager : MonoBehaviour
 
     //残りのTargetItem個数GameManager用
     private int counter;
+
+    //関数群=================================================================
+    
 
     private void Pause()
     {
@@ -48,12 +52,31 @@ public class GameManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
     }
 
+    //ゲームをクリア状態にする
     private void GameClear()
     {
         GameClearFlag = true;
         uiManager.DisplayClear();
 
         Cursor.lockState = CursorLockMode.None;
+    }
+
+    //クリア状態にするかどうかを検知する関数
+    private void DetectGameClear()
+    {
+        if (counter <= 0 && goal.ReachGoal == true)
+        {
+            GameClear();
+        }
+    }
+
+    //ゴールできる状態にする関数、できれば個数が一回だけの実行にしたい
+    private void UnlockGoal()
+    {
+        if(counter <= 0)
+        {
+            goal.Enable();
+        }
     }
 
     //能力をPlayerに流す
@@ -102,9 +125,7 @@ public class GameManager : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (counter <= 0)
-        {
-            GameClear();
-        }
+        UnlockGoal();
+        DetectGameClear();
     }
 }
